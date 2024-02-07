@@ -5,23 +5,12 @@
 //  Created by Egor Ledkov on 07.02.2024.
 //
 
-#if DEBUG
-import SwiftUI
-#endif
-
 import UIKit
 
 class ViewController: UIViewController {
 	
 	private lazy var squareView: UIView = makeSquareView()
 	private lazy var slider: UISlider = makeSlider()
-	private lazy var button: UIButton = {
-		let button = UIButton(frame: CGRect(x: 200, y: 300, width: 100, height: 50))
-		
-		button.backgroundColor = .green
-		
-		return button
-	}()
 	
 	private lazy var animator: MonitorableUIViewPropertyAnimator = {
 		return MonitorableUIViewPropertyAnimator(duration: 1, curve: .linear)
@@ -36,60 +25,28 @@ class ViewController: UIViewController {
 	private func setup() {
 		view.backgroundColor = .white
 		
-		button.setTitle("Reset", for: .normal)
-		button.addTarget(self, action: #selector(restart), for: .touchUpInside)
-		
 		slider.addTarget(self, action: #selector(didChangeSlider), for: .valueChanged)
-		
-		slider.addTarget(self, action: #selector(touchDownSlider), for: .touchDown)
-		
 		slider.addTarget(self, action: #selector(touchCancelSlider), for: .touchUpInside)
 		
 		view.addSubview(squareView)
 		view.addSubview(slider)
-		view.addSubview(button)
-		
-		setupAnimator()
-	}
-	
-	@objc private func restart() {
-		print("restart \(animator.state)")
-		
-		squareView.transform = CGAffineTransform.identity
-		squareView.frame = CGRect(x: 10, y: 120, width: 100, height: 100)
-		slider.value = 0
-		
-		animator.stopAnimation(true)
 		
 		setupAnimator()
 	}
 	
 	@objc private func touchCancelSlider() {
-		print("Cancel", animator.fractionComplete)
 		animator.continueAnimation(withTimingParameters: nil, durationFactor: 0)
 	}
 	
-	@objc private func touchDownSlider() {
-		if animator.isRunning {
-			animator.pauseAnimation()
-			print("Down pause", animator.fractionComplete)
-		} else {
-			if slider.value == slider.maximumValue {
-//				restart()
-			} else {
-				animator.startAnimation()
-			}
-			print("Down start", animator.fractionComplete)
-		}
-	}
-	
-	@objc private func didChangeSlider() {
-		animator.pauseAnimation()
+	@objc private func didChangeSlider(_ sender: UISlider) {
 		animator.fractionComplete = CGFloat(slider.value)
 	}
 	
 	private func setupAnimator() {
+		animator.pausesOnCompletion = true
+		
 		animator.addAnimations {
+			// Можно сразу присвоить, оставил тут для запоминания навешивания одной на другую
 			var transform = CGAffineTransform.identity
 			transform = transform.rotated(by: .pi / 2)
 			
@@ -99,6 +56,7 @@ class ViewController: UIViewController {
 			self.squareView.frame = CGRect(x: x, y: 95, width: 150, height: 150)
 		}
 		
+		// Тут не нужно, оставил для себя на будущее - полезно!
 		animator.addCompletion { position in
 			switch position {
 			case .end:
@@ -138,7 +96,6 @@ private extension ViewController {
 		return uiSlider
 	}
 }
-
 
 // MARK: - MonitorableUIViewPropertyAnimator
 
@@ -181,31 +138,3 @@ final class MonitorableUIViewPropertyAnimator : UIViewPropertyAnimator {
 		}
 	}
 }
-
-
-// MARK: - PreviewProvider
-
-#if DEBUG
-struct MainViewControllerProvider: PreviewProvider {
-	static var previews: some View {
-		ViewController()
-			.preview()
-	}
-}
-
-extension UIViewController {
-	struct Preview: UIViewControllerRepresentable {
-		let viewController: UIViewController
-		
-		func makeUIViewController(context: Context) -> some UIViewController {
-			viewController
-		}
-		
-		func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) { }
-	}
-	
-	func preview( ) -> some View {
-		Preview(viewController: self)
-	}
-}
-#endif
